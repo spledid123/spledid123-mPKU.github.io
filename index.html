@@ -1,0 +1,395 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+    <title>燕园微生物地图</title>
+    <link rel="stylesheet" href="https://a.amap.com/jsapi_demos/static/demo-center/css/demo-center.css"/>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column; /* 修改方向为列，以便标题栏在顶部 */
+        }
+        #header {
+            width: 100%;
+            height: 50px;
+            background-color: #f8f8f8;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            box-sizing: border-box;
+            border-bottom: 1px solid #ccc;
+        }
+        #header img {
+            height: 40px;
+            margin-right: 20px;
+        }
+        #header h1 {
+            font-size: 24px;
+            margin: 0;
+        }
+        #container {
+            width: 100%;
+            height: calc(100% - 50px); /* 扣除标题栏的高度 */
+            margin: 0;
+            position: relative; /* 允许绝对定位的子元素 */
+        }
+        #sidebar {
+            position: absolute; /* 使用绝对定位，将侧边栏固定在左侧 */
+            left: 0;
+            top: 0;
+            width: 20%;
+            height: 100%;
+            overflow-y: auto;
+            border-right: 1px solid #bababa;
+            background: #fff;
+            font-family: '黑体', sans-serif; /* 设置字体为黑体 */
+            font-size: 14px; /* 固定字号 */
+            z-index: 1000; /* 确保sidebar在地图之上 */
+        }
+        /* Style for the reset button */
+        #resetButton {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            z-index: 999;
+        }
+        ul {
+            padding-left: 0px;
+            list-style-type: none; /* 移除无序列表符号 */
+        }
+
+        li {
+            position: relative; /* 使::before定位相对于li */
+            padding-left: 15px; /* 基本缩进，留出展开符号的位置 */
+        }
+
+        /* 移除根节点的竖线 */
+        #tree > li::before {
+            display: none;
+        }
+
+        /* 竖线样式，仅在非根节点的li应用 */
+        #sidebar ul ul li::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 1px; /* 与展开符号对齐 */
+            width: 1px; /* 引导线厚度 */
+            height: 100%; /* 引导线高度 */
+            background-color: #ccc; /* 引导线颜色 */
+        }
+
+        /* 去掉最后一级的竖线 */
+        #sidebar ul ul li:last-child::before {
+            height: calc(100% - 12px);
+        }
+
+        .toggle-btn {
+            cursor: pointer;
+            margin-right: 5px;
+        }
+        
+        .popup {
+            padding: 10px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            overflow-y: auto; /* 添加滚动条 */
+            max-width: 420px; /* 固定宽度 */
+            max-height: 400px; /* 固定高度 */
+        }
+        .popup img {
+            width: 100%; /* 保持图片宽度 */
+            height: auto; /* 保持图片宽高比 */
+        }
+    </style>
+</head>
+
+<body>
+<!-- 标题栏 -->
+<div id="header">
+    <img src="https://th.bing.com/th/id/OIP.dSdXTssXAbd9FDo1CEZQaQHaHa?rs=1&pid=ImgDetMain" alt="Logo">
+    <h1>燕园微生物地图</h1>
+</div>
+
+<!-- Container for the map -->
+<div id="container">
+    <div id="sidebar">
+        <ul id="tree">
+            <li id="Bacteria">
+                <span class="toggle-btn" data-expanded="false">+</span> 细菌界 Bacteria
+                <ul class="nested" style="display: none;">
+                    <li id="Abditibacteriota">
+                        <span class="toggle-btn" data-expanded="false">+</span> 遥远杆状菌门（Abditibacteriota）
+                        <ul class="nested" style="display: none;">
+                            <li id="Abditibacteriia">
+                                <span class="toggle-btn" data-expanded="false">+</span> 遥远杆状菌纲（Abditibacteriia）
+                                <ul class="nested" style="display: none;">
+                                    <li id="Abditibacteriales">
+                                        <span class="toggle-btn" data-expanded="false">+</span> 遥远杆状菌目（Abditibacteriales）
+                                        <ul class="nested" style="display: none;">
+                                            <li id="Abditibacteriaceae">遥远杆状菌科（Abditibacteriaceae）</li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </li>
+                    <li id="Acidobacteriota">
+                        <span class="toggle-btn" data-expanded="false">+</span> 酸杆菌门（Acidobacteriota）
+                        <ul class="nested" style="display: none;">
+                            <li id="Blastocatellia">
+                                <span class="toggle-btn" data-expanded="false">+</span> 出芽小链菌纲（Blastocatellia）
+                                <ul class="nested" style="display: none;">
+                                    <li id="Blastocatellales">
+                                        <span class="toggle-btn" data-expanded="false">+</span> 出芽小链菌目（Blastocatellales）
+                                        <ul class="nested" style="display: none;">
+                                            <li id="Arenimicrobiaceae">沙质土微菌科（Arenimicrobiaceae）</li>
+                                            <li id="Blastocatellaceae">出芽小链菌科（Blastocatellaceae）</li>
+                                            <li id="Pyrinomonadaceae">栖火山单胞菌科（Pyrinomonadaceae）</li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li id="Holophagae">
+                                <span class="toggle-btn" data-expanded="false">+</span> 全噬菌纲（Holophagae）
+                                <ul class="nested" style="display: none;">
+                                    <li id="Acanthopleuribacterales">
+                                        <span class="toggle-btn" data-expanded="false">+</span> 石鳖杆菌目（Acanthopleuribacterales）
+                                        <ul class="nested" style="display: none;">
+                                            <li id="Acanthopleuribacteraceae">石鳖杆菌科（Acanthopleuribacteraceae）
+                                                <ul class="nested" style="display: none;">
+                                                    <li id="Acanthopleuribacter">石鳖杆菌属（Acanthopleuribacter）</li>
+                                                    <li id="Sulfidibacter">未命名属（Sulfidibacter）</li>
+                                                </ul>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                    <li id="Holophagales">
+                                        <span class="toggle-btn" data-expanded="false">+</span> 全噬菌目（Holophagales）
+                                        <ul class="nested" style="display: none;">
+                                            <li id="Holophagaceae">全噬菌科（Holophagaceae）</li>
+                                        </ul>
+                                    </li>
+                                    <li id="Thermotomaculales">
+                                        <span class="toggle-btn" data-expanded="false">+</span> 嗜热香肠状菌目（Thermotomaculales）
+                                        <ul class="nested" style="display: none;">
+                                            <li id="Thermotomaculaceae">嗜热香肠状菌科（Thermotomaculaceae）</li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+    <!-- Button to reset the map view -->
+    <button id="resetButton">重置视图</button>
+</div>
+
+<script src="https://webapi.amap.com/maps?v=2.0&key=9451a6c5d4f691ed5e1453bb2d3aa229"></script>
+<script>
+    // Initialize the map with a center point and zoom level
+    var map = new AMap.Map('container', {
+        zoom: 15,
+        center: [116.31088, 39.99281]
+    });
+
+    // Function to toggle visibility of child lists in the tree
+    // function toggleNestedList(event) {
+    //     const btn = event.target;
+    //     const expanded = btn.getAttribute('data-expanded') === 'true';
+    //     const nestedList = btn.parentNode.querySelector('.nested');
+
+    //     if (expanded) {
+    //         nestedList.style.display = 'none';
+    //         btn.textContent = '+';
+    //     } else {
+    //         nestedList.style.display = 'block';
+    //         btn.textContent = '-';
+    //     }
+
+    //     btn.setAttribute('data-expanded', !expanded);
+    // }
+    
+    var heatmap;
+    map.plugin(["AMap.HeatMap"], function () {
+        heatmap = new AMap.HeatMap(map, {
+            radius: 30,
+            opacity: [0, 0.8],
+            gradient:{
+                0.5: 'blue',
+                0.65: 'rgb(117,211,248)',
+                0.7: 'rgb(0, 255, 0)',
+                0.9: '#ffea00',
+                1.0: 'red'
+            }
+        });
+    });
+    
+    var heatmapData = {
+        "Bacteria": generateRandomData(),
+        "Abditibacteriota": generateRandomData(),
+        "Abditibacteriia": generateRandomData(),
+        "Abditibacteriales": generateRandomData(),
+        "Abditibacteriaceae": generateRandomData(),
+        "Acidobacteriota": generateRandomData(),
+        "Blastocatellia": generateRandomData(),
+        "Blastocatellales": generateRandomData(),
+        "Arenimicrobiaceae": generateRandomData(),
+        "Blastocatellaceae": generateRandomData(),
+        "Pyrinomonadaceae": generateRandomData(),
+        "Holophagae": generateRandomData(),
+        "Acanthopleuribacterales": generateRandomData(),
+        "Acanthopleuribacteraceae": generateRandomData(),
+        "Acanthopleuribacter": generateRandomData(),
+        "Sulfidibacter": generateRandomData(),
+        "Holophagales": generateRandomData(),
+        "Holophagaceae": generateRandomData(),
+        "Thermotomaculales": generateRandomData(),
+        "Thermotomaculaceae": generateRandomData()
+    };
+
+    function generateRandomData() {
+        var data = [];
+        for (var i = 0; i < 100; i++) {
+            data.push({
+                "lng": 116.30508 + Math.random() * 0.01,
+                "lat": 39.98681 + Math.random() * 0.01,
+                "count": Math.random() * 100
+            });
+        }
+        return data;
+    }
+    
+    function toggleNode(event) {
+        var btn = event.target;
+        var expanded = btn.getAttribute('data-expanded') === 'true';
+        btn.setAttribute('data-expanded', !expanded);
+        btn.innerText = expanded ? '+' : '-';
+        var nextUl = btn.nextElementSibling;
+        if (nextUl && nextUl.tagName === 'UL') {
+            nextUl.style.display = expanded ? 'none' : 'block';
+        }
+        event.stopPropagation();
+    }
+
+    function showHeatmap(data) {
+        if (heatmap) {
+            heatmap.setDataSet({
+                data: data,
+                max: 100
+            });
+            heatmap.show();
+        }
+    }
+
+    function onNodeClick(event) {
+        if (event.target.classList.contains('toggle-btn')) {
+            return; // 如果点击的是toggle按钮，则不处理
+        }
+        var node = event.target.closest('li'); // 获取最近的li元素
+        var nodeId = node.id; // 获取li元素的id
+        var heatmapDataForNode = heatmapData[nodeId]; // 获取对应节点的热力图数据
+        if (heatmapDataForNode) {
+            showHeatmap(heatmapDataForNode);
+        }
+    }
+
+    document.querySelectorAll('.toggle-btn').forEach(btn => {
+        btn.addEventListener('click', toggleNode);
+    });
+
+    document.querySelectorAll('#tree li').forEach(li => {
+        li.addEventListener('click', onNodeClick);
+    });
+
+    // Add click event listener to the reset button to reset the map view
+    document.getElementById('resetButton').addEventListener('click', function() {
+        map.setZoom(15);
+        map.setCenter([116.31088, 39.99281]);
+    });
+
+    // Fetch point data from 'point.txt' file
+    fetch('point.txt')
+        .then(response => response.text())
+        .then(text => {
+            // Split the text data into lines and process each line to extract point information
+            const points = text.trim().split('\n').slice(1).map(line => line.split('\t'));
+            points.forEach(point => {
+                // Create a marker for each point with specified coordinates
+                const marker = new AMap.Marker({
+                    position: [parseFloat(point[3]), parseFloat(point[4])],
+                    map: map
+                });
+
+                // Define the content of the information window for each marker
+                marker.content = `
+                    <div class="popup">
+                        <p>地址：${point[2]}</p>
+                        <img src="${point[5]}" alt="图片" style="width: auto; height: 250px;">
+                        <select id="optionSelect" data-index="${point[0]}">
+                            <option value="无">无</option>
+                            <option value="门">门</option>
+                            <option value="纲">纲</option>
+                            <option value="目">目</option>
+                            <option value="科">科</option>
+                            <option value="属">属</option>
+                        </select>
+                        <div id="imageContainer-${point[0]}"></div>
+                    </div>
+                `;
+
+                // Add click event listener to the marker to display the information window
+                marker.on('click', function (e) {
+                    var infoWindow = new AMap.InfoWindow({
+                        content: e.target.content,
+                        offset: new AMap.Pixel(0, -30)
+                    });
+                    infoWindow.open(map, e.target.getPosition());
+
+                    // Add change event listener to the select element to update the image based on the selected option
+                    document.querySelectorAll('#optionSelect').forEach(select => {
+                        select.addEventListener('change', function() {
+                            var index = this.getAttribute('data-index');
+                            var imageContainer = document.getElementById(`imageContainer-${index}`);
+                            var selectedValue = this.value;
+                            var imgSrc = '';
+                            // Switch case to update image source based on the selected option
+                            switch (selectedValue) {
+                                case '无':
+                                    break;
+                                case '门':
+                                    imgSrc = points[index-1][6];
+                                    break;
+                                case '纲':
+                                    imgSrc = points[index-1][7];
+                                    break;
+                                case '目':
+                                    imgSrc = points[index-1][8];
+                                    break;
+                                case '科':
+                                    imgSrc = points[index-1][9];
+                                    break;
+                                case '属':
+                                    imgSrc = points[index-1][10];
+                                    break;
+                            }
+                            // Update the image container with the selected image
+                            imageContainer.innerHTML = `<img src="${imgSrc}" alt="图片" style="width: 400px; height: auto;">`;
+                        });
+                    });
+                });
+            });
+        });
+</script>
+</body>
+</html>
