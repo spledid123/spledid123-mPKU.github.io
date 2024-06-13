@@ -1,343 +1,237 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<!-- 零基础制作，感谢ChatGPT -->
+<html lang="zh-CN">
+
 <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+    <!-- 指定IE渲染方式 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 设置视口，以确保网页在不同设备上良好显示 -->
+    <meta name="description" content="燕园微生物地图，展示北京大学校园内各个地点的微生物分布情况及详细信息。">
+    <meta name="keywords" content="燕园, 北大, 北京大学, 微生物, 地图, 微生物分布">
+    <!-- 定义关键字，用于搜索引擎 -->
+    <meta name="author" content="北京大学环境微生物学课程大作业">
+    <link rel="stylesheet" href="https://a.amap.com/jsapi_demos/static/demo-center/css/demo-center.css" />
+    <!-- 连接外部样式，高德地图 -->
     <title>燕园微生物地图</title>
-    <link rel="stylesheet" href="https://a.amap.com/jsapi_demos/static/demo-center/css/demo-center.css"/>
-    <style>
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column; /* 修改方向为列，以便标题栏在顶部 */
-        }
-        #header {
-            width: 100%;
-            height: 50px;
-            background-color: #f8f8f8;
-            display: flex;
-            align-items: center;
-            padding: 0 20px;
-            box-sizing: border-box;
-            border-bottom: 1px solid #ccc;
-        }
-        #header img {
-            height: 40px;
-            margin-right: 20px;
-        }
-        #header h1 {
-            font-size: 24px;
-            margin: 0;
-        }
-        #container {
-            width: 100%;
-            height: calc(100% - 50px); /* 扣除标题栏的高度 */
-            margin: 0;
-            position: relative; /* 允许绝对定位的子元素 */
-        }
-        #sidebar {
-            position: absolute; /* 使用绝对定位，将侧边栏固定在左侧 */
-            left: 0;
-            top: 0;
-            width: 20%;
-            height: 100%;
-            overflow-y: auto;
-            border-right: 1px solid #bababa;
-            background: #fff;
-            font-family: '黑体', sans-serif; /* 设置字体为黑体 */
-            font-size: 14px; /* 固定字号 */
-            z-index: 1000; /* 确保sidebar在地图之上 */
-        }
-        /* Style for the reset button */
-        #resetButton {
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            z-index: 999;
-        }
-        ul {
-            padding-left: 0px;
-            list-style-type: none; /* 移除无序列表符号 */
-        }
-
-        li {
-            position: relative; /* 使::before定位相对于li */
-            padding-left: 15px; /* 基本缩进，留出展开符号的位置 */
-        }
-
-        /* 移除根节点的竖线 */
-        #tree > li::before {
-            display: none;
-        }
-
-        /* 竖线样式，仅在非根节点的li应用 */
-        #sidebar ul ul li::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 1px; /* 与展开符号对齐 */
-            width: 1px; /* 引导线厚度 */
-            height: 100%; /* 引导线高度 */
-            background-color: #ccc; /* 引导线颜色 */
-        }
-
-        /* 去掉最后一级的竖线 */
-        #sidebar ul ul li:last-child::before {
-            height: calc(100% - 12px);
-        }
-
-        .toggle-btn {
-            cursor: pointer;
-            margin-right: 5px;
-        }
-        
-        .popup {
-            padding: 10px;
-            background-color: #fff;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            overflow-y: auto; /* 添加滚动条 */
-            max-width: 420px; /* 固定宽度 */
-            max-height: 400px; /* 固定高度 */
-        }
-        .popup img {
-            width: 100%; /* 保持图片宽度 */
-            height: auto; /* 保持图片宽高比 */
-        }
-    </style>
 </head>
+<style>
+    /* 确保HTML、body的宽度和高度为100%，并且没有任何边距或内边距 */
+    html,
+    body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        /* 隐藏滚动条 */
+    }
+
+    /* 标题栏 */
+    #header {
+        width: 100%;
+        height: 50px;
+        background-color: #f8f8f8;
+        display: flex;
+        align-items: center;
+        padding: 0 20px;
+        z-index: 100;
+        box-sizing: border-box;
+        border-bottom: 1px solid #ccc;
+    }
+
+    /* 图标 */
+    #header img {
+        height: 40px;
+        margin-right: 20px;
+    }
+
+    #header h1 {
+        font-size: 24px;
+        margin: 0;
+    }
+
+    /* 地图容器 */
+    #container {
+        width: 100%;
+        height: calc(100% - 50px);
+        /* 扣除标题栏的高度 */
+        margin: 0;
+        position: relative;
+        /* 允许绝对定位的子元素 */
+    }
+
+    /* 边栏 */
+    #sidebar {
+        position: absolute;
+        /* 使用绝对定位，将侧边栏固定在左侧 */
+        left: 0;
+        top: 0;
+        width: 20%;
+        height: 100%;
+        overflow-y: auto;
+        border-right: 1px solid #bababa;
+        background: #fff;
+        font-family: '黑体', sans-serif;
+        /* 设置字体为黑体 */
+        font-size: 14px;
+        /* 固定字号 */
+        z-index: 100;
+    }
+
+    /* 重置视图按钮 */
+    #resetButton {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        z-index: 1000;
+        padding: 10px;
+        background-color: #fff;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    /* 图层切换按钮 */
+    #switchButton {
+        position: absolute;
+        /*与父元素的绝对位置*/
+        bottom: 50px;
+        /*与父元素顶部右边的距离*/
+        right: 10px;
+        z-index: 1000;
+        /* 设置按钮的堆叠顺序，值越大越靠前 */
+        padding: 10px;
+        /* 按钮内容与边框的内边距为 10px */
+        background-color: #fff;
+        border: 1px solid #ccc;
+        cursor: pointer;
+        /* 鼠标悬停在按钮上时显示为指针形状，表示可点击 */
+    }
+
+    #themoButton {
+        position: absolute;
+        top: 10px;
+        left:10px;
+        z-index: 1000;
+        padding: 10px;
+        background-color: #fff;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    /* 弹窗样式 */
+    .popup {
+        padding: 10px;
+        background-color: #771c1c;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+    }
+
+    .popup img {
+        width: 100px;
+        height: 100px;
+    }
+
+    .popup-close {
+        cursor: pointer;
+        float: right;
+        font-size: 16px;
+        line-height: 16px;
+    }
+</style>
 
 <body>
-<!-- 标题栏 -->
-<div id="header">
-    <img src="https://th.bing.com/th/id/OIP.dSdXTssXAbd9FDo1CEZQaQHaHa?rs=1&pid=ImgDetMain" alt="Logo">
-    <h1>燕园微生物地图</h1>
-</div>
-
-<!-- Container for the map -->
-<div id="container">
-    <div id="sidebar">
-        <ul id="tree">
-            <li id="Bacteria">
-                <span class="toggle-btn" data-expanded="false">+</span> 细菌界 Bacteria
-                <ul class="nested" style="display: none;">
-                    <li id="Abditibacteriota">
-                        <span class="toggle-btn" data-expanded="false">+</span> 遥远杆状菌门（Abditibacteriota）
-                        <ul class="nested" style="display: none;">
-                            <li id="Abditibacteriia">
-                                <span class="toggle-btn" data-expanded="false">+</span> 遥远杆状菌纲（Abditibacteriia）
-                                <ul class="nested" style="display: none;">
-                                    <li id="Abditibacteriales">
-                                        <span class="toggle-btn" data-expanded="false">+</span> 遥远杆状菌目（Abditibacteriales）
-                                        <ul class="nested" style="display: none;">
-                                            <li id="Abditibacteriaceae">遥远杆状菌科（Abditibacteriaceae）</li>
-                                        </ul>
-                                    </li>
-                                </ul>
-                            </li>
-                        </ul>
-                    </li>
-                    <li id="Acidobacteriota">
-                        <span class="toggle-btn" data-expanded="false">+</span> 酸杆菌门（Acidobacteriota）
-                        <ul class="nested" style="display: none;">
-                            <li id="Blastocatellia">
-                                <span class="toggle-btn" data-expanded="false">+</span> 出芽小链菌纲（Blastocatellia）
-                                <ul class="nested" style="display: none;">
-                                    <li id="Blastocatellales">
-                                        <span class="toggle-btn" data-expanded="false">+</span> 出芽小链菌目（Blastocatellales）
-                                        <ul class="nested" style="display: none;">
-                                            <li id="Arenimicrobiaceae">沙质土微菌科（Arenimicrobiaceae）</li>
-                                            <li id="Blastocatellaceae">出芽小链菌科（Blastocatellaceae）</li>
-                                            <li id="Pyrinomonadaceae">栖火山单胞菌科（Pyrinomonadaceae）</li>
-                                        </ul>
-                                    </li>
-                                </ul>
-                            </li>
-                            <li id="Holophagae">
-                                <span class="toggle-btn" data-expanded="false">+</span> 全噬菌纲（Holophagae）
-                                <ul class="nested" style="display: none;">
-                                    <li id="Acanthopleuribacterales">
-                                        <span class="toggle-btn" data-expanded="false">+</span> 石鳖杆菌目（Acanthopleuribacterales）
-                                        <ul class="nested" style="display: none;">
-                                            <li id="Acanthopleuribacteraceae">石鳖杆菌科（Acanthopleuribacteraceae）
-                                                <ul class="nested" style="display: none;">
-                                                    <li id="Acanthopleuribacter">石鳖杆菌属（Acanthopleuribacter）</li>
-                                                    <li id="Sulfidibacter">未命名属（Sulfidibacter）</li>
-                                                </ul>
-                                            </li>
-                                        </ul>
-                                    </li>
-                                    <li id="Holophagales">
-                                        <span class="toggle-btn" data-expanded="false">+</span> 全噬菌目（Holophagales）
-                                        <ul class="nested" style="display: none;">
-                                            <li id="Holophagaceae">全噬菌科（Holophagaceae）</li>
-                                        </ul>
-                                    </li>
-                                    <li id="Thermotomaculales">
-                                        <span class="toggle-btn" data-expanded="false">+</span> 嗜热香肠状菌目（Thermotomaculales）
-                                        <ul class="nested" style="display: none;">
-                                            <li id="Thermotomaculaceae">嗜热香肠状菌科（Thermotomaculaceae）</li>
-                                        </ul>
-                                    </li>
-                                </ul>
-                            </li>
-                        </ul>
-                    </li>
-                </ul>
-            </li>
-        </ul>
+    <!-- 标题栏 -->
+    <div id="header">
+        <img src="icon.png" alt="Logo">
+        <h1>燕园微生物地图</h1>
     </div>
-    <!-- Button to reset the map view -->
-    <button id="resetButton">重置视图</button>
-</div>
-
-<script src="https://webapi.amap.com/maps?v=2.0&key=9451a6c5d4f691ed5e1453bb2d3aa229"></script>
-<script>
-    // Initialize the map with a center point and zoom level
-    var map = new AMap.Map('container', {
-        zoom: 15,
-        center: [116.31088, 39.99281]
-    });
-
-    // Function to toggle visibility of child lists in the tree
-    // function toggleNestedList(event) {
-    //     const btn = event.target;
-    //     const expanded = btn.getAttribute('data-expanded') === 'true';
-    //     const nestedList = btn.parentNode.querySelector('.nested');
-
-    //     if (expanded) {
-    //         nestedList.style.display = 'none';
-    //         btn.textContent = '+';
-    //     } else {
-    //         nestedList.style.display = 'block';
-    //         btn.textContent = '-';
-    //     }
-
-    //     btn.setAttribute('data-expanded', !expanded);
-    // }
-    
-    var heatmap;
-    map.plugin(["AMap.HeatMap"], function () {
-        heatmap = new AMap.HeatMap(map, {
-            radius: 30,
-            opacity: [0, 0.8],
-            gradient:{
-                0.5: 'blue',
-                0.65: 'rgb(117,211,248)',
-                0.7: 'rgb(0, 255, 0)',
-                0.9: '#ffea00',
-                1.0: 'red'
-            }
-        });
-    });
-    
-    var heatmapData = {
-        "Bacteria": generateRandomData(),
-        "Abditibacteriota": generateRandomData(),
-        "Abditibacteriia": generateRandomData(),
-        "Abditibacteriales": generateRandomData(),
-        "Abditibacteriaceae": generateRandomData(),
-        "Acidobacteriota": generateRandomData(),
-        "Blastocatellia": generateRandomData(),
-        "Blastocatellales": generateRandomData(),
-        "Arenimicrobiaceae": generateRandomData(),
-        "Blastocatellaceae": generateRandomData(),
-        "Pyrinomonadaceae": generateRandomData(),
-        "Holophagae": generateRandomData(),
-        "Acanthopleuribacterales": generateRandomData(),
-        "Acanthopleuribacteraceae": generateRandomData(),
-        "Acanthopleuribacter": generateRandomData(),
-        "Sulfidibacter": generateRandomData(),
-        "Holophagales": generateRandomData(),
-        "Holophagaceae": generateRandomData(),
-        "Thermotomaculales": generateRandomData(),
-        "Thermotomaculaceae": generateRandomData()
+    <div id="container"><!-- 地图容器 -->
+        <div id="resetButton">重置视图</div> <!-- 重置视图按钮 -->
+        <div id="switchButton">切换图层</div> <!-- 切换图层按钮 -->
+        <div id="sidebar"><!-- 边栏 -->
+            <div id="themoButton">热力图</div> <!-- 打开/关闭热力图 -->
+        </div>
+    </div>
+</body>
+<!-- 引入高德地图API -->
+<script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=9451a6c5d4f691ed5e1453bb2d3aa229">
+    window._AMapSecurityConfig = {
+        securityJsCode: "ee22c862367e47643c222cac51e64881",
     };
-
-    function generateRandomData() {
-        var data = [];
-        for (var i = 0; i < 100; i++) {
-            data.push({
-                "lng": 116.30508 + Math.random() * 0.01,
-                "lat": 39.98681 + Math.random() * 0.01,
-                "count": Math.random() * 100
-            });
-        }
-        return data;
-    }
-    
-    function toggleNode(event) {
-        var btn = event.target;
-        var expanded = btn.getAttribute('data-expanded') === 'true';
-        btn.setAttribute('data-expanded', !expanded);
-        btn.innerText = expanded ? '+' : '-';
-        var nextUl = btn.nextElementSibling;
-        if (nextUl && nextUl.tagName === 'UL') {
-            nextUl.style.display = expanded ? 'none' : 'block';
-        }
-        event.stopPropagation();
-    }
-
-    function showHeatmap(data) {
-        if (heatmap) {
-            heatmap.setDataSet({
-                data: data,
-                max: 100
-            });
-            heatmap.show();
-        }
-    }
-
-    function onNodeClick(event) {
-        if (event.target.classList.contains('toggle-btn')) {
-            return; // 如果点击的是toggle按钮，则不处理
-        }
-        var node = event.target.closest('li'); // 获取最近的li元素
-        var nodeId = node.id; // 获取li元素的id
-        var heatmapDataForNode = heatmapData[nodeId]; // 获取对应节点的热力图数据
-        if (heatmapDataForNode) {
-            showHeatmap(heatmapDataForNode);
-        }
-    }
-
-    document.querySelectorAll('.toggle-btn').forEach(btn => {
-        btn.addEventListener('click', toggleNode);
+</script>
+<!-- 规定高德地图显示样式 -->
+<script type="text/javascript">
+    let layer = new AMap.TileLayer();//标准图层
+    let satellite = new AMap.TileLayer.Satellite();//卫星图层
+    // 引入地图
+    let map = new AMap.Map("container", {
+        viewMode: '2D', //默认使用 2D 模式
+        zoom: 17, //地图级别
+        center: [116.31088, 39.99281], //地图中心点
+        mapStyle: "amap://styles/normal", //设置地图的显示样式
+        resizeEnable: true, // 允许调整大小
+        layers: [layer]//图层
     });
-
-    document.querySelectorAll('#tree li').forEach(li => {
-        li.addEventListener('click', onNodeClick);
+    // 异步添加比例尺工具
+    AMap.plugin('AMap.Scale', function () {
+        var scale = new AMap.Scale();
+        map.addControl(scale);
     });
-
-    // Add click event listener to the reset button to reset the map view
-    document.getElementById('resetButton').addEventListener('click', function() {
-        map.setZoom(15);
-        map.setCenter([116.31088, 39.99281]);
+    // 重置视图按钮
+    document.getElementById('resetButton').addEventListener('click', function () {
+        map.setZoomAndCenter(17, [116.31088, 39.99281]); // 重置地图的缩放级别和中心点
     });
-
-    // Fetch point data from 'point.txt' file
+    // 按钮点击事件处理函数，切换图层
+    document.getElementById('switchButton').addEventListener('click', function () {
+        if (map.getLayers().indexOf(satellite) == -1) {
+            // 当前显示的是标准图层，切换到卫星图层
+            map.setLayers([satellite]);
+        } else {
+            // 当前显示的是卫星图层，切换到标准图层
+            map.setLayers([layer]);
+        }
+    });
+</script>
+<!-- 实现读取文件并显示不同点位以及弹窗 -->
+<script>
+    // 读取文件并解析数据,
+    //point.txt的内容：sampleId	sampleName	地址 经度 纬度 环境图片	门 纲 目 科	属
     fetch('point.txt')
-        .then(response => response.text())
+        .then(response => response.text())// 使用 .text() 方法将响应内容转换为文本
         .then(text => {
-            // Split the text data into lines and process each line to extract point information
             const points = text.trim().split('\n').slice(1).map(line => line.split('\t'));
+            // .trim() 方法用于去除字符串开头和结尾的空白字符（包括空格、制表符、换行符等）。
+            // .split('\n')将去除空白后的字符串按换行符（\n）拆分成一个数组，每个数组元素对应原字符串中的一行。
+            // slice(1) 方法用于从数组的第二个元素开始提取一个新数组：存在标题行。
+            // map 方法遍历数组中的每个元素，并对每个元素执行一个回调函数。split('\t') 将每行字符串按制表符（\t）拆分成一个数组。
+            // 最终返回一个二维数组，其中每个子数组表示一行数据，每个子数组中的元素是该行数据的各个字段。
+
+            //forEach 方法用于迭代数组中的每个元素，并对每个元素执行指定的操作或回调函数。
             points.forEach(point => {
-                // Create a marker for each point with specified coordinates
+                //  定义高德地图的点标记
                 const marker = new AMap.Marker({
                     position: [parseFloat(point[3]), parseFloat(point[4])],
-                    map: map
+                    // parseFloat解析一个字符串并返回一个浮点数
+                    map: map,
+                    icon: new AMap.Icon({
+                        image: 'http://webapi.amap.com/theme/v1.3/markers/n/mark_b.png', // 设置标注点的图标
+                        size: new AMap.Size(19, 31), // 图标尺寸
+                        imageSize: new AMap.Size(19, 31) // 图标所用图片大小
+                    }),
+                    // offset: new AMap.Pixel(-13, -30), //位置偏移量
                 });
 
-                // Define the content of the information window for each marker
+                // 定义弹窗html,popup是弹窗元素,p是段落
                 marker.content = `
                     <div class="popup">
-                        <p>地址：${point[2]}</p>
+                        <p>地址：${point[2]}<br>经度${point[3]},纬度${point[4]}(高德坐标系)</p>
                         <img src="${point[5]}" alt="图片" style="width: auto; height: 250px;">
-                        <select id="optionSelect" data-index="${point[0]}">
-                            <option value="无">无</option>
+                        <select id="optionSelect" data-index=${point[0]} name="分类层级">
+                            <option value="" selected>选择</option>
                             <option value="门">门</option>
                             <option value="纲">纲</option>
                             <option value="目">目</option>
@@ -348,39 +242,39 @@
                     </div>
                 `;
 
-                // Add click event listener to the marker to display the information window
+                // 开信息窗体
                 marker.on('click', function (e) {
-                    var infoWindow = new AMap.InfoWindow({
+                    let infoWindow = new AMap.InfoWindow({
                         content: e.target.content,
-                        offset: new AMap.Pixel(0, -30)
+                        anchor: 'bottom-center',
+                        offset: new AMap.Pixel(0, -30),
+                        closeWhenClickMap: true // 点击地图关闭信息窗口
                     });
                     infoWindow.open(map, e.target.getPosition());
 
                     // Add change event listener to the select element to update the image based on the selected option
                     document.querySelectorAll('#optionSelect').forEach(select => {
-                        select.addEventListener('change', function() {
-                            var index = this.getAttribute('data-index');
+                        select.addEventListener('change', function () {
+                            let index = this.getAttribute('data-index');
                             var imageContainer = document.getElementById(`imageContainer-${index}`);
                             var selectedValue = this.value;
                             var imgSrc = '';
                             // Switch case to update image source based on the selected option
                             switch (selectedValue) {
-                                case '无':
-                                    break;
                                 case '门':
-                                    imgSrc = points[index-1][6];
+                                    imgSrc = point[6];
                                     break;
                                 case '纲':
-                                    imgSrc = points[index-1][7];
+                                    imgSrc = point[7];
                                     break;
                                 case '目':
-                                    imgSrc = points[index-1][8];
+                                    imgSrc = point[8];
                                     break;
                                 case '科':
-                                    imgSrc = points[index-1][9];
+                                    imgSrc = point[9];
                                     break;
                                 case '属':
-                                    imgSrc = points[index-1][10];
+                                    imgSrc = point[10];
                                     break;
                             }
                             // Update the image container with the selected image
@@ -391,5 +285,9 @@
             });
         });
 </script>
-</body>
+<!-- 实现热力图功能 -->
+<script>
+
+</script>
+
 </html>
