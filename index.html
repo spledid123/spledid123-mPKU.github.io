@@ -15,6 +15,8 @@
     <link rel="stylesheet" href="https://a.amap.com/jsapi_demos/static/demo-center/css/demo-center.css" />
     <!-- 连接外部样式，高德地图 -->
     <title>燕园微生物地图</title>
+
+
 </head>
 <style>
     /* 确保HTML、body的宽度和高度为100%，并且没有任何边距或内边距 */
@@ -77,7 +79,7 @@
         /* 设置字体为黑体 */
         font-size: 14px;
         /* 固定字号 */
-        z-index: 100;
+        z-index: 1;
     }
 
     /* 重置视图按钮 */
@@ -113,7 +115,7 @@
     #themoButton {
         position: absolute;
         top: 10px;
-        left:10px;
+        left: 10px;
         z-index: 1000;
         padding: 10px;
         background-color: #fff;
@@ -130,17 +132,71 @@
         border-radius: 5px;
     }
 
+    /* 弹窗的图片 */
     .popup img {
         width: 100px;
         height: 100px;
     }
 
+    /* 弹窗的关闭符号 */
     .popup-close {
         cursor: pointer;
         float: right;
         font-size: 16px;
         line-height: 16px;
     }
+</style>
+
+<style>
+    ul {
+        padding-left: 0px;
+        list-style-type: none;
+        /* 移除无序列表符号 */
+    }
+
+    li {
+        position: relative;
+        padding-left: 15px;
+        /* 基本缩进，留出展开符号的位置 */
+    }
+
+    /* 创建伪元素，引导线样式 */
+    /* ul ul 表示二级菜单 */
+    #sidebar ul ul li::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 1px;
+        width: 1px;
+        /* 引导线厚度 */
+        height: 100%;
+        /* 引导线高度 */
+        background-color: #0a0000;
+        /* 引导线颜色 */
+        /* display: none;移除根节点的竖线 */
+    }
+
+    /* 去掉最后一级的竖线 */
+    #sidebar ul ul:not(:has(ul))::before {
+        display: none;
+    }
+
+    /* 将最后一个子菜单项的 toggle 按钮隐藏 */
+    #sidebar ul ul li:not(:has(ul)) .toggle-btn {
+        display: none;
+    }
+
+    /* 边栏+/-号的样式 */
+    .toggle-btn {
+        /* cursor 是用来定义鼠标指针在元素上的形状或样式的属性 */
+        cursor: pointer;
+        margin-right: 10px;
+    }
+</style>
+
+</style>
+
+
 </style>
 
 <body>
@@ -152,10 +208,10 @@
     <div id="container"><!-- 地图容器 -->
         <div id="resetButton">重置视图</div> <!-- 重置视图按钮 -->
         <div id="switchButton">切换图层</div> <!-- 切换图层按钮 -->
-        <div id="sidebar"><!-- 边栏 -->
-            <div id="themoButton">热力图</div> <!-- 打开/关闭热力图 -->
+
+        <div id="sidebar">
+            <!-- 列表数据将由JavaScript加载 -->
         </div>
-    </div>
 </body>
 <!-- 引入高德地图API -->
 <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=9451a6c5d4f691ed5e1453bb2d3aa229">
@@ -229,7 +285,7 @@
                 marker.content = `
                     <div class="popup">
                         <p>地址：${point[2]}<br>经度${point[3]},纬度${point[4]}(高德坐标系)</p>
-                        <img src="${point[5]}" alt="图片" style="width: auto; height: 250px;">
+                        <img src="${point[5]}" alt="图片">
                         <select id="optionSelect" data-index=${point[0]} name="分类层级">
                             <option value="" selected>选择</option>
                             <option value="门">门</option>
@@ -278,15 +334,88 @@
                                     break;
                             }
                             // Update the image container with the selected image
-                            imageContainer.innerHTML = `<img src="${imgSrc}" alt="图片" style="width: 400px; height: auto;">`;
+                            imageContainer.innerHTML = `<img src="${imgSrc}" alt="图片">`;
                         });
                     });
                 });
             });
         });
 </script>
+<!-- 生成测栏中的节点树 -->
+<script>
+    //  DOMContentLoaded 事件监听器，在初始HTML文档被完全加载和解析后触发
+    document.addEventListener("DOMContentLoaded", function () {
+        fetch('data.json')
+            .then(response => response.json())
+            .then(data => {
+                const sidebar = document.getElementById('sidebar');
+                // createList 函数递归地创建列表元素
+                // appendChild向指定父节点的子节点列表末尾添加一个新的子节点
+                // 此处将tree的所有数据加入sidebar中
+                sidebar.appendChild(createList(data.tree));
+                bindToggleEvents();
+            })
+            .catch(error => {
+                console.error('Failed to load data:', error);
+            });
+
+        function createList(items, isRoot = true) {
+            const ul = document.createElement('ul');
+            // 检测是否为根节点，不是则默认不显示
+            if (!isRoot) {
+                ul.style.display = 'none'; // Set the style to display: none for nested elements
+            }
+            items.forEach(item => {
+                // li 元素通常用在有序列表（<ol>）或无序列表（<ul>）中，用来定义列表中的每个项目。
+                const li = document.createElement('li');
+                // 用span保证+/-和内容在同一行
+                // data-expanded属性记录是否展示
+                li.innerHTML = `<span class="toggle-btn" data-expanded="false">+</span> ${item.name}`;
+                // 递归创建子节点
+                // 若存在子节点且其数量大于0
+                if (item.children && item.children.length > 0) {
+                    const nestedUl = createList(item.children, false); // Pass false for nested elements
+                    li.appendChild(nestedUl);
+                }
+                // 将ul元素加入列表
+                ul.appendChild(li);
+            });
+            return ul;
+        }
+
+        function toggleNode(event) {
+            let btn = event.target;
+            // expand是布尔值，检测data-expanded属性(是否展开)是否为真
+            // === 是一个严格相等运算符。它用于比较两个值是否相等，同时还要求这两个值的类型必须相同
+            let expanded = btn.getAttribute('data-expanded') === 'true';
+            // 为真改为收回，为假展开
+            btn.setAttribute('data-expanded', !expanded);
+            // 为真状态改为+，为假改为-
+            btn.innerText = expanded ? '+' : '-';
+            // 获取按钮的下一个兄弟元素,是一个ul元素，无序列表
+            let nextUl = btn.nextElementSibling;
+            // 检测是否存在子元素以及其是否为ul元素，为真则展示子菜单（将css样式改为无）
+            if (nextUl && nextUl.tagName === 'UL') {
+                nextUl.style.display = expanded ? 'none' : 'block';
+            }
+            // stopPropagation 是 JavaScript 中 Event 对象的方法，用于阻止事件传播到父元素。
+            event.stopPropagation();
+        }
+
+        function bindToggleEvents() {
+            // 为文档中所有具有 toggle-btn 类名的元素添加点击事件监听器，
+            // 当这些元素被点击时，执行 toggleNode 函数。
+            // .是类选择器
+            document.querySelectorAll('.toggle-btn').forEach(btn => {
+                btn.addEventListener('click', toggleNode);
+            });
+        }
+    });
+</script>
+
 <!-- 实现热力图功能 -->
 <script>
+
 
 </script>
 
