@@ -90,7 +90,7 @@
         position: absolute;
         bottom: 10px;
         right: 10px;
-        z-index: 1000;
+        z-index: 1;
         padding: 10px;
         background-color: #fff;
         border: 1px solid #ccc;
@@ -105,7 +105,7 @@
         bottom: 50px;
         /*与父元素顶部右边的距离*/
         right: 10px;
-        z-index: 1000;
+        z-index: 1;
         /* 设置按钮的堆叠顺序，值越大越靠前 */
         padding: 10px;
         /* 按钮内容与边框的内边距为 10px */
@@ -130,7 +130,7 @@
     /* 弹窗样式 */
     .popup {
         padding: 10px;
-        background-color: #771c1c;
+        background-color: #fcfafa;
         border: 1px solid #ccc;
         border-radius: 5px;
     }
@@ -197,8 +197,71 @@
     }
 </style>
 
-</style>
+<style>
+    /* 弹窗样式相关 */
 
+    /* “关于”按钮 */
+    #header button {
+        padding: 10px 10px;
+        font-size: 16px;
+        margin-left: 20px;
+    }
+    .modal {
+        display: none; 
+        position: fixed; 
+        z-index: 2; 
+        left: 0;
+        top: 0;
+        width: 100%; 
+        height: 100%; 
+        overflow: auto; 
+        background-color: rgba(0,0,0,0.4); 
+    }
+    .modal-content {
+        background-color: #fff;
+        margin: 15% auto; 
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%; 
+        max-width: 600px;
+    }
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .modal-header h2 {
+        margin: 0;
+    }
+    .close {
+        color: #aaa;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+    .button-group {
+        display: flex;
+        justify-content: space-around;
+        margin: 20px 0;
+        list-style-type: none;
+        padding: 0;
+    }
+    .button-group li {
+        display: inline;
+    }
+    .button-group button {
+        padding: 10px;
+        font-size: 16px;
+        cursor: pointer;
+    }
+    .info-content {
+        display: none;
+        font-size: 16px;
+        font-family: '黑体', sans-serif;
+    }
+    .info-content.active {
+        display: block;
+    }
 
 </style>
 
@@ -207,6 +270,44 @@
     <div id="header">
         <img src="icon.png" alt="Logo">
         <h1>燕园微生物地图</h1>
+        <button id="aboutBtn">关于</button>
+    </div>
+    <div id="myModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>关于我们</h2>
+                <span class="close">&times;</span>
+            </div>
+            <ul class="button-group">
+                <li><button id="btnA">项目说明</button></li>
+                <li><button id="btnB">贡献</button></li>
+                <li><button id="btnC">联系我们</button></li>
+            </ul>
+            <div id="infoA" class="info-content active">
+                <p>#关于本项目</br>
+                    本项目旨在识别和绘制北京大学的微生物。</br>
+                    网址：<a href="https://mpku.top" target="_blank">mpku.top</a> </br>
+
+
+                    #技术支持 </br>
+                    地图绘制、热图绘制——高德地图</br>
+                    微生物丰度图绘制——https://view.qiime2.org/</br>
+                </p>
+            </div>
+            <div id="infoB" class="info-content">
+                <p> 项目负责：Dr.聂勇（nieyong@pku.edu.cn）</br>
+                    人工样品采样：王思淇（sqwang1020@stu.pku.edu.cn）、陈彦、肖维</br>
+                    未名湖采样：吴梦迪（mengdi_wu@stu.pku.edu.cn）、周孙鹏、张高歌</br>
+                    燕园南采样：覃健梅（qinjm@pku.eu.cn）、曹洳铭、聂新崴</br>
+                    生物信息处理：王思淇、吴梦迪、曹洳铭（2301111754@stu.pku.edu.cn）、覃健梅</br>
+                    数据过渡：张高歌（2301111752@stu.pku.edu.cn）、陈彦（2301111755@stu.pku.edu.cn）、聂新崴（2301111760@stu.pku.edu.cn）</br>
+                    网页可视化：周孙鹏（2301111759@stu.pku.edu.cn）、肖维（xiaowei@pku.edu.cn）</br>
+                </p>
+            </div>
+            <div id="infoC" class="info-content">
+                <p>对于本项目有任何疑问，请联系Dr.聂勇（nieyong@pku.edu.cn）</p>
+            </div>
+        </div>
     </div>
     <div id="container"><!-- 地图容器 -->
         <div id="resetButton">重置视图</div> <!-- 重置视图按钮 -->
@@ -241,6 +342,7 @@
         var scale = new AMap.Scale();
         map.addControl(scale);
     });
+    //最开始没想到要销毁，结果卡卡卡，且map会崩掉
     function destroyHeatmapLayer() {
         if (heatmapLayer) {
             heatmapLayer.setMap(null); // 移除之前的热力图层
@@ -264,6 +366,53 @@
             map.setLayers([layer]);
         }
     });
+</script>
+<!-- “关于”弹窗按钮控制 -->
+<script>
+    // 获取元素
+    var modal = document.getElementById("myModal");
+    var btn = document.getElementById("aboutBtn");
+    var span = document.getElementsByClassName("close")[0];
+    var btnA = document.getElementById("btnA");
+    var btnB = document.getElementById("btnB");
+    var btnC = document.getElementById("btnC");
+    var infoA = document.getElementById("infoA");
+    var infoB = document.getElementById("infoB");
+    var infoC = document.getElementById("infoC");
+
+    // 打开弹窗
+    btn.onclick = function() {
+        modal.style.display = "block";
+    }
+
+    // 关闭弹窗
+    span.onclick = function() {
+        modal.style.display = "none";
+    }
+
+    // 切换显示内容
+    btnA.onclick = function() {
+        infoA.classList.add("active");
+        infoB.classList.remove("active");
+        infoC.classList.remove("active");
+    }
+    btnB.onclick = function() {
+        infoA.classList.remove("active");
+        infoB.classList.add("active");
+        infoC.classList.remove("active");
+    }
+    btnC.onclick = function() {
+        infoA.classList.remove("active");
+        infoB.classList.remove("active");
+        infoC.classList.add("active");
+    }
+
+    // 点击窗口外关闭弹窗
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    }
 </script>
 <!-- 实现读取文件并显示不同点位以及弹窗 -->
 <script>
