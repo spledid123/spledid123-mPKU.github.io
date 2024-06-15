@@ -133,20 +133,25 @@
         background-color: #fcfafa;
         border: 1px solid #ccc;
         border-radius: 5px;
+        font-size: 20px;
     }
 
     /* 弹窗的图片 */
     .popup img {
-        width: 100px;
-        height: 100px;
+        width: auto;
+        height: 200px;
     }
 
     /* 弹窗的关闭符号 */
     .popup-close {
         cursor: pointer;
         float: right;
-        font-size: 16px;
-        line-height: 16px;
+        font-size: 32px;
+        line-height: 30px;
+    }
+    /*选项窗口*/
+    #optionSelect{
+        height:40px;
     }
 </style>
 
@@ -688,7 +693,6 @@
                 // 初始化结果数组，长度为第一个ID对应行数组的长度
                 let firstData = await get_data_id(ids[0]);
                 let result = new Array(firstData.length).fill(0);
-
                 // 遍历ID数组，调用get_data_id函数获取数据，并将每行对应位置的数字相加到结果数组
                 for (let id of ids) {
                     let data = await get_data_id(id);
@@ -738,7 +742,6 @@
                     count = count.map(num => Number(num));
                     // 构造dataset数据集
                     let dataset = buildDataset(lng, lat, count);
-
                     // 输出dataset，或者进行其他操作
                     creatheatmap(dataset);
                     console.log("Heatmap data set and shown.");
@@ -746,9 +749,6 @@
                     console.error('Failed to load data:', error);
                 }
             }
-
-
-
         }
     });
 </script>
