@@ -1,5 +1,8 @@
 <!DOCTYPE html>
 <!-- 零基础制作，感谢ChatGPT -->
+<!-- 读取的文件需要是utf-8文件 -->
+<!-- 数据本身问题不小，很多分类名没出来，不严谨。。。 -->
+ <!-- 在本地跑，读取文件，运算，画热力图的速度实在堪忧 -->
 <html lang="zh-CN">
 
 <head>
@@ -224,7 +227,7 @@
     let layer = new AMap.TileLayer();//标准图层
     let satellite = new AMap.TileLayer.Satellite();//卫星图层
     // 引入地图
-    let map = new AMap.Map("container", {
+    const map = new AMap.Map("container", {
         viewMode: '2D', //默认使用 2D 模式
         zoom: 17, //地图级别
         center: [116.31088, 39.99281], //地图中心点
@@ -232,17 +235,27 @@
         resizeEnable: true, // 允许调整大小
         layers: [layer]//图层
     });
+    // console.table(map);
     // 异步添加比例尺工具
     AMap.plugin('AMap.Scale', function () {
         var scale = new AMap.Scale();
         map.addControl(scale);
     });
+    function destroyHeatmapLayer() {
+        if (heatmapLayer) {
+            heatmapLayer.setMap(null); // 移除之前的热力图层
+            heatmapLayer = null;
+        }
+    }
     // 重置视图按钮
     document.getElementById('resetButton').addEventListener('click', function () {
+        destroyHeatmapLayer();
         map.setZoomAndCenter(17, [116.31088, 39.99281]); // 重置地图的缩放级别和中心点
+        map.setLayers([layer]);
     });
     // 按钮点击事件处理函数，切换图层
     document.getElementById('switchButton').addEventListener('click', function () {
+        destroyHeatmapLayer();
         if (map.getLayers().indexOf(satellite) == -1) {
             // 当前显示的是标准图层，切换到卫星图层
             map.setLayers([satellite]);
@@ -259,7 +272,7 @@
     fetch('point.txt')
         .then(response => response.text())// 使用 .text() 方法将响应内容转换为文本
         .then(text => {
-            const points = text.trim().split('\n').slice(1).map(line => line.split('\t'));
+            let points = text.trim().split('\n').slice(1).map(line => line.split('\t'));
             // .trim() 方法用于去除字符串开头和结尾的空白字符（包括空格、制表符、换行符等）。
             // .split('\n')将去除空白后的字符串按换行符（\n）拆分成一个数组，每个数组元素对应原字符串中的一行。
             // slice(1) 方法用于从数组的第二个元素开始提取一个新数组：存在标题行。
@@ -269,7 +282,7 @@
             //forEach 方法用于迭代数组中的每个元素，并对每个元素执行指定的操作或回调函数。
             points.forEach(point => {
                 //  定义高德地图的点标记
-                const marker = new AMap.Marker({
+                let marker = new AMap.Marker({
                     position: [parseFloat(point[3]), parseFloat(point[4])],
                     // parseFloat解析一个字符串并返回一个浮点数
                     map: map,
@@ -348,7 +361,7 @@
         fetch('data.json')
             .then(response => response.json())
             .then(data => {
-                const sidebar = document.getElementById('sidebar');
+                let sidebar = document.getElementById('sidebar');
                 // createList 函数递归地创建列表元素
                 // appendChild向指定父节点的子节点列表末尾添加一个新的子节点
                 // 此处将tree的所有数据加入sidebar中
@@ -360,21 +373,21 @@
             });
 
         function createList(items, isRoot = true) {
-            const ul = document.createElement('ul');
+            let ul = document.createElement('ul');
             // 检测是否为根节点，不是则默认不显示
             if (!isRoot) {
                 ul.style.display = 'none'; // Set the style to display: none for nested elements
             }
             items.forEach(item => {
                 // li 元素通常用在有序列表（<ol>）或无序列表（<ul>）中，用来定义列表中的每个项目。
-                const li = document.createElement('li');
+                let li = document.createElement('li');
                 // 用span保证+/-和内容在同一行
                 // data-expanded属性记录是否展示
-                li.innerHTML = `<span class="toggle-btn" data-expanded="false">+</span> ${item.name}`;
+                li.innerHTML = `<span class="toggle-btn" data-expanded="false">+</span> ${item.name} <button type="submit" value=${item.name} class="buttontheom">热力图</button>`;
                 // 递归创建子节点
                 // 若存在子节点且其数量大于0
                 if (item.children && item.children.length > 0) {
-                    const nestedUl = createList(item.children, false); // Pass false for nested elements
+                    let nestedUl = createList(item.children, false); // Pass false for nested elements
                     li.appendChild(nestedUl);
                 }
                 // 将ul元素加入列表
@@ -392,8 +405,9 @@
             btn.setAttribute('data-expanded', !expanded);
             // 为真状态改为+，为假改为-
             btn.innerText = expanded ? '+' : '-';
-            // 获取按钮的下一个兄弟元素,是一个ul元素，无序列表
-            let nextUl = btn.nextElementSibling;
+            // 获取按钮的临近的临近元素,是一个ul元素，无序列表
+            let nextUl = btn.nextElementSibling.nextElementSibling;
+            // console.table(nextUl.tagName)调试，查看元素类型
             // 检测是否存在子元素以及其是否为ul元素，为真则展示子菜单（将css样式改为无）
             if (nextUl && nextUl.tagName === 'UL') {
                 nextUl.style.display = expanded ? 'none' : 'block';
@@ -412,11 +426,182 @@
         }
     });
 </script>
-
 <!-- 实现热力图功能 -->
 <script>
+    let heatmapLayer = null;
+    map.plugin(["AMap.HeatMap"], function () {
+        heatmapLayer = new AMap.HeatMap(map, {
+            radius: 100, // 热力图中单个点的半径，单位：像素
+            opacity: [0, 0.8], // 热力图的透明度
+            gradient: {
+                0.4: 'rgb(0, 255, 255)',
+                0.65: 'rgb(0, 110, 255)',
+                0.85: 'rgb(100, 0, 255)',
+                1.0: 'rgb(100, 0, 255)'
+            }
+        });
+    });
+    // 为所有类名为 'button-theom' 的元素添加点击事件监听器
+    //由于botton元素在js动态生成，为了确保其一定被querySelectorAll捕获到，将其绑在静态的父节点上
+    const parentElement = document.getElementById('sidebar');
+    parentElement.addEventListener('click', function (event) {
+        if (event.target.classList.contains('buttontheom')) {
+            // 处理点击事件
+            document.querySelectorAll('.buttontheom').forEach(function (button) {
+                button.addEventListener('click', change_heat_map);
+            });
+            //创建热力图
+            function creatheatmap(data) {
+                if (heatmapLayer) {
+                    heatmapLayer.setMap(null); // 移除之前的热力图层
+                    heatmapLayer = null;
+                }
+                //异步读取，需要提前销毁之前的热力图
+                //其实本来想销毁热力图只用把data改成null就好了，不用新建变量，但是发现不行，重置按钮导致整个地图崩掉
+                map.plugin(["AMap.HeatMap"], function () {
+                    heatmapLayer = new AMap.HeatMap(map, {
+                        radius: 100, // 热力图中单个点的半径，单位：像素
+                        opacity: [0, 0.8], // 热力图的透明度
+                        gradient: {
+                            0.4: 'rgb(0, 255, 255)',
+                            0.65: 'rgb(0, 110, 255)',
+                            0.85: 'rgb(100, 0, 255)',
+                            1.0: 'rgb(100, 0, 255)'
+                        }
+                    });
+                });   
+                heatmapLayer.setDataSet(data);
+                // console.log("2",heatmapLayer);
+            }
+            //得到一系列属的id,也就是botton的value，根据是否有子节点筛选
+            function get_ids(buttonElement) {
+                // 读取元素的 id
+                let ids = [];
+                let ulElement = buttonElement.nextElementSibling;
+                // 判断是否有子节点
+                if (ulElement && ulElement.tagName === 'UL') {
+                    let buttonElements = ulElement.getElementsByTagName('button');
+                    //得到所有button元素
+                    for (let i = 0; i < buttonElements.length; i++) {
+                        newbuttonElement = buttonElements[i];
+                        let ulElement = newbuttonElement.nextElementSibling;
+                        if (ulElement && ulElement.tagName === 'UL') {
+                        }
+                        else {//不存在子节点,则将其value选入
+                            ids.push(newbuttonElement.value);
+                        }
+                    }
+                    return ids;
+                }
+                else {
+                    // 不存在子节点，返回 id 字符串
+                    ids.push(buttonElement.value);
+                    return ids;
+                }
+            }
+
+            // 处理表格文件
+            function parseCSV(data) {
+                let lines = data.split('\n');
+                let headers = lines[0].split('\t');//表头
+                let rows = lines.slice(1).map(line => line.split('\t'));//各行内容
+
+                return { headers, rows };
+            }
+            //得到id对应列的数据
+            //fetch 是一个异步操作，它返回一个 Promise，因此在 fetch 完成之前后续的代码会继续执行。
+            // 这意味着当你在异步操作之外打印或返回 themo_data 时，它可能还没有被赋值。
+            // 你需要等待 fetch 操作完成后再处理数据。为此，可以使用 async 和 await 语法来处理异步操作。
+            async function get_data_id(id) {
+                try {
+                    let response = await fetch('data.txt');
+                    let text = await response.text();
+                    let { headers, rows } = parseCSV(text);
+                    let columnIndex = headers.indexOf(id);
+
+                    if (columnIndex === -1) {
+                        console.log('Column not found');
+                        return [];
+                    }
+
+                    let themo_data = rows.map(row => row[columnIndex]);
+                    // console.log(themo_data);
+                    return themo_data;
+                } catch (error) {
+                    console.log('Failed to load data:', error);
+                    return [];
+                }
+            }
+            //获取某个大类下所有条目的数字之和
+            async function get_data(event) {
+                // 从事件目标元素获取ID数组
+                let ids = get_ids(event.target);
+                // 初始化结果数组，长度为第一个ID对应行数组的长度
+                let firstData = await get_data_id(ids[0]);
+                let result = new Array(firstData.length).fill(0);
+
+                // 遍历ID数组，调用get_data_id函数获取数据，并将每行对应位置的数字相加到结果数组
+                for (let id of ids) {
+                    let data = await get_data_id(id);
+                    if (data == []) {
+                        data = new Array(firstData.length).fill(0);
+                    }
+                    // console.log(data);
+                    result = result.map((num, index) => num + data[index]);
+                }
+                // 返回最终结果数组
+                return result;
+            }
+            //构造heatmap对应的dataset
+            function buildDataset(lngArray, latArray, countArray) {
+                let dataset = {
+                    // max: 0,
+                    data: []
+                };
+
+                // 假设lngArray, latArray, countArray长度相同，表示每行数据
+                for (let i = 0; i < lngArray.length; i++) {
+                    dataset.data.push({
+                        lng: lngArray[i],
+                        lat: latArray[i],
+                        count: countArray[i]
+                    });
+                    // dataset.max = Math.max(...countArray);
+                }
+
+                return dataset;
+            }
+
+            // change_heat_map函数，整合上述过程
+            async function change_heat_map(event) {
+                try {
+                    // 获取 data.txt 文件内容
+                    let response = await fetch('data.txt');
+                    let text = await response.text();
+                    let { headers, rows } = parseCSV(text);
+
+                    // 获取经纬度
+                    let lng = rows.map(row => Number(row[1])); // 经度
+                    let lat = rows.map(row => Number(row[2])); // 纬度
+
+                    // 获取count数组，假设这里是调用get_data函数获取的
+                    let count = await get_data(event);
+                    count = count.map(num => Number(num));
+                    // 构造dataset数据集
+                    let dataset = buildDataset(lng, lat, count);
+
+                    // 输出dataset，或者进行其他操作
+                    creatheatmap(dataset);
+                    console.log("Heatmap data set and shown.");
+                } catch (error) {
+                    console.error('Failed to load data:', error);
+                }
+            }
 
 
+
+        }
+    });
 </script>
 
 </html>
