@@ -114,19 +114,28 @@
         cursor: pointer;
         /* 鼠标悬停在按钮上时显示为指针形状，表示可点击 */
     }
-
-    #themoButton {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        z-index: 1000;
-        padding: 10px;
+    /* 热力图按钮 */
+    .buttontheom {
+        position: relative;
+        align-content: center;
+        width: 20px;
+        height: 20px;
+        z-index: 2;
+        /* padding: 10px; */
         background-color: #fff;
         border: 1px solid #ccc;
         border-radius: 5px;
         cursor: pointer;
     }
 
+    .buttontheom:active {
+        top: 2px;
+    }
+
+    .buttontheom.clicked {
+        background: radial-gradient(circle, rgb(0, 38, 255) 20%,rgb(0, 102, 255) 40%,lightblue 100%);
+        border-color: lightblue;
+    }
     /* 弹窗样式 */
     .popup {
         padding: 10px;
@@ -207,10 +216,15 @@
 
     /* “关于”按钮 */
     #header button {
-        padding: 10px 10px;
+        align-items: center;
         font-size: 16px;
         margin-left: 20px;
+        padding-left: 10px;
+        padding-right: 10px;
+        padding-top: 2px;
+        padding-bottom: 2px;
     }
+    /*弹窗中的按钮*/
     .modal {
         display: none; 
         position: fixed; 
@@ -222,6 +236,7 @@
         overflow: auto; 
         background-color: rgba(0,0,0,0.4); 
     }
+    /* 弹窗框 */
     .modal-content {
         background-color: #fff;
         margin: 15% auto; 
@@ -251,17 +266,20 @@
         list-style-type: none;
         padding: 0;
     }
+    /* 弹窗中按钮行 */
     .button-group li {
         display: inline;
     }
+    /*弹窗中的按钮*/
     .button-group button {
-        padding: 10px;
+        width: 100px;
+        height: 50px;
         font-size: 16px;
         cursor: pointer;
     }
     .info-content {
         display: none;
-        font-size: 16px;
+        font-size: 18px;
         font-family: '黑体', sans-serif;
     }
     .info-content.active {
@@ -310,7 +328,7 @@
                 </p>
             </div>
             <div id="infoC" class="info-content">
-                <p>对于本项目有任何疑问，请联系Dr.聂勇（nieyong@pku.edu.cn）</p>
+                <p style="font-size: 18px;">对于本项目有任何疑问，请联系</br> Dr.聂勇（nieyong@pku.edu.cn）</p>
             </div>
         </div>
     </div>
@@ -319,6 +337,7 @@
         <div id="switchButton">切换图层</div> <!-- 切换图层按钮 -->
 
         <div id="sidebar">
+            <p style="color: #888; margin-left: 5%;"><button class="buttontheom">&nbsp</button>&nbsp点击按钮显示热力图</p>
             <!-- 列表数据将由JavaScript加载 -->
         </div>
 </body>
@@ -525,30 +544,41 @@
             .catch(error => {
                 console.error('Failed to load data:', error);
             });
+            
+        let lastClickedButton = null;
+
+        function handleButtonClick(event) {
+        if (lastClickedButton) {
+            lastClickedButton.classList.remove('clicked');
+        }
+        event.target.classList.add('clicked');
+        lastClickedButton = event.target;
+        }
 
         function createList(items, isRoot = true) {
             let ul = document.createElement('ul');
-            // 检测是否为根节点，不是则默认不显示
-            if (!isRoot) {
-                ul.style.display = 'none'; // Set the style to display: none for nested elements
+            if (!isRoot) {  // 检测是否为根节点，不是则默认不显示
+                ul.style.display = 'none';  // Set the style to display: none for nested elements
             }
             items.forEach(item => {
-                // li 元素通常用在有序列表（<ol>）或无序列表（<ul>）中，用来定义列表中的每个项目。
-                let li = document.createElement('li');
-                // 用span保证+/-和内容在同一行
-                // data-expanded属性记录是否展示
-                li.innerHTML = `<span class="toggle-btn" data-expanded="false">+</span> ${item.name} <button type="submit" value=${item.name} class="buttontheom">热力图</button>`;
-                // 递归创建子节点
-                // 若存在子节点且其数量大于0
+                let li = document.createElement('li');  // li 元素通常用在有序列表（<ol>）或无序列表（<ul>）中，用来定义列表中的每个项目。
+                li.innerHTML = `<span class="toggle-btn" data-expanded="false">+</span> ${item.name} <button type="submit" value=${item.name} class="buttontheom">&nbsp</button>`;// 用span保证+/-和内容在同一行, data-expanded属性记录是否展示
+
+                // 给节点button添加事件监听器
+                let button = li.querySelector('button.buttontheom');
+                button.addEventListener('click', handleButtonClick);
+
+                // 递归创建子节点，若存在子节点且其数量大于0
                 if (item.children && item.children.length > 0) {
-                    let nestedUl = createList(item.children, false); // Pass false for nested elements
+                    let nestedUl = createList(item.children, false);
                     li.appendChild(nestedUl);
                 }
-                // 将ul元素加入列表
-                ul.appendChild(li);
+                ul.appendChild(li); // 将ul元素加入列表
             });
             return ul;
         }
+
+        document.body.appendChild();
 
         function toggleNode(event) {
             let btn = event.target;
@@ -569,7 +599,7 @@
             // stopPropagation 是 JavaScript 中 Event 对象的方法，用于阻止事件传播到父元素。
             event.stopPropagation();
         }
-
+        
         function bindToggleEvents() {
             // 为文档中所有具有 toggle-btn 类名的元素添加点击事件监听器，
             // 当这些元素被点击时，执行 toggleNode 函数。
@@ -578,6 +608,7 @@
                 btn.addEventListener('click', toggleNode);
             });
         }
+
     });
 </script>
 <!-- 实现热力图功能 -->
@@ -598,6 +629,7 @@
     // 为所有类名为 'button-theom' 的元素添加点击事件监听器
     //由于botton元素在js动态生成，为了确保其一定被querySelectorAll捕获到，将其绑在静态的父节点上
     const parentElement = document.getElementById('sidebar');
+
     parentElement.addEventListener('click', function (event) {
         if (event.target.classList.contains('buttontheom')) {
             // 处理点击事件
@@ -627,6 +659,7 @@
                 heatmapLayer.setDataSet(data);
                 // console.log("2",heatmapLayer);
             }
+            
             //得到一系列属的id,也就是botton的value，根据是否有子节点筛选
             function get_ids(buttonElement) {
                 // 读取元素的 id
